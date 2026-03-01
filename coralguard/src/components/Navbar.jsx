@@ -1,0 +1,82 @@
+import { NavLink } from "react-router-dom";
+
+const navItems = [
+  { label: "Overview", path: "/" },
+  { label: "Reefs", path: "/reefs" },
+  { label: "Analyze", path: "/analyze" },
+  { label: "ReefBot", path: "/reefbot" },
+  { label: "Reports", path: "/reports" },
+];
+
+export default function Navbar() {
+  return (
+    <nav
+      className="fixed top-0 left-0 right-0 z-50 h-16 flex items-center justify-between px-12 border-b border-white/5"
+      style={{
+        background: "rgba(10,10,10,0.92)",
+        backdropFilter: "blur(24px)",
+      }}
+    >
+      {/* Logo */}
+      <div className="flex items-center gap-2.5">
+        <div
+          className="w-7 h-7 rounded-lg flex items-center justify-center text-sm"
+          style={{ background: "linear-gradient(135deg, #4ade80, #0ea5e9)" }}
+        >
+          🪸
+        </div>
+        <span
+          className="text-sm font-semibold tracking-tight text-white"
+          style={{ fontFamily: "'DM Sans', sans-serif" }}
+        >
+          CoralGuard
+        </span>
+        <span
+          className="text-sm ml-0.5"
+          style={{
+            color: "rgba(248,250,252,0.25)",
+            fontFamily: "'DM Sans', sans-serif",
+          }}
+        >
+          Cebu
+        </span>
+      </div>
+
+      {/* Nav Links */}
+      <div className="flex items-center gap-1">
+        {navItems.map((item) => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            end={item.path === "/"}
+            className={({ isActive }) =>
+              `px-4 py-1.5 rounded-lg text-sm transition-all duration-150 ${
+                isActive
+                  ? "bg-white/7 text-white font-medium"
+                  : "text-white/35 hover:text-white/70 font-normal"
+              }`
+            }
+            style={{ fontFamily: "'DM Sans', sans-serif" }}
+          >
+            {item.label}
+          </NavLink>
+        ))}
+      </div>
+
+      {/* SDG Badge */}
+      <div
+        className="text-xs px-3 py-1 rounded-full border"
+        style={{
+          background: "rgba(74,222,128,0.08)",
+          borderColor: "rgba(74,222,128,0.15)",
+          color: "#4ade80",
+          fontFamily: "'DM Sans', sans-serif",
+          fontWeight: 500,
+          letterSpacing: "0.05em",
+        }}
+      >
+        SDG 14
+      </div>
+    </nav>
+  );
+}
