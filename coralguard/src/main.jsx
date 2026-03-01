@@ -19,5 +19,5 @@ const rootEl = ensureRoot();
 createRoot(rootEl).render(
   <StrictMode>
     <App />
-  </StrictMode>
+  </StrictMode>,
 );

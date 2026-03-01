@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { analyzeCoralImage } from "../lib/gemini";
 import { submitReport } from "../lib/supabase";
 import ScoreRing from "../components/ScoreRing";
@@ -42,15 +42,43 @@ export default function Analyze() {
   const [result, setResult] = useState(null);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef();
 
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+    };
+  }, [preview]);
+
+  const fileToBase64 = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const raw = reader.result;
+        if (typeof raw !== "string") {
+          reject(new Error("Failed to read image as base64"));
+          return;
+        }
+        resolve(raw.split(",")[1] || "");
+      };
+      reader.onerror = () => reject(reader.error || new Error("Read error"));
+      reader.readAsDataURL(file);
+    });
+
   const handleFile = (f) => {
     if (!f) return;
+    if (!f.type.startsWith("image/")) {
+      setSubmitError("Please upload a valid image file.");
+      return;
+    }
+    if (preview) URL.revokeObjectURL(preview);
     setFile(f);
     setPreview(URL.createObjectURL(f));
     setResult(null);
     setSubmitted(false);
+    setSubmitError("");
   };
 
   const handleDrop = (e) => {
@@ -62,6 +90,7 @@ export default function Analyze() {
 
   const analyze = async () => {
     if (!file) return;
+    setSubmitError("");
     setLoading(true);
     setLoadStep(0);
     setResult(null);
@@ -73,12 +102,8 @@ export default function Analyze() {
     );
 
     try {
-      // Convert to base64
-      const base64 = await new Promise((res) => {
-        const reader = new FileReader();
-        reader.onload = () => res(reader.result.split(",")[1]);
-        reader.readAsDataURL(file);
-      });
+      // Convert to base64 (Gemini expects raw base64 without data URL prefix)
+      const base64 = await fileToBase64(file);
 
       const data = await analyzeCoralImage(
         base64,
@@ -101,6 +126,7 @@ export default function Analyze() {
         recommendation:
           "Significant bleaching detected. Recommend reporting to BFAR Region 7 and temporarily restricting diving and fishing activities. Monitor water temperature weekly for the next 30 days.",
       });
+      setSubmitError("AI analysis failed, showing fallback estimate.");
     }
 
     clearInterval(interval);
@@ -110,10 +136,19 @@ export default function Analyze() {
 
   const handleSubmit = async () => {
     if (!result || !file) return;
+    setSubmitError("");
     setSubmitting(true);
-    const res = await submitReport(result, file);
+    const payload = {
+      ...result,
+      location: location || "Other / Unknown",
+    };
+    const res = await submitReport(payload, file);
     setSubmitting(false);
-    if (res.success) setSubmitted(true);
+    if (res.success) {
+      setSubmitted(true);
+    } else {
+      setSubmitError("Failed to submit report. Please try again.");
+    }
   };
 
   const reset = () => {
@@ -122,6 +157,7 @@ export default function Analyze() {
     setResult(null);
     setSubmitted(false);
     setLoadStep(0);
+    setSubmitError("");
   };
 
   return (
@@ -348,6 +384,19 @@ export default function Analyze() {
         {/* ── Result ── */}
         {result && (
           <div style={{ animation: "fadeUp 0.5s ease" }}>
+            {result?._meta?.fallback && (
+              <div
+                className="mb-3 p-3 rounded-xl text-xs"
+                style={{
+                  background: "rgba(251,146,60,0.12)",
+                  border: "1px solid rgba(251,146,60,0.35)",
+                  color: "#fdba74",
+                  fontFamily: "'DM Sans', sans-serif",
+                }}
+              >
+                Using fallback estimate ({result?._meta?.reason || "Gemini unavailable"}). Try another photo or check API key/network.
+              </div>
+            )}
             {/* Score + Status */}
             <div
               className="rounded-2xl overflow-hidden mb-4"
@@ -528,6 +577,17 @@ export default function Analyze() {
                 </div>
               )}
             </div>
+            {submitError && (
+              <p
+                className="mt-3 text-xs"
+                style={{
+                  color: "#f87171",
+                  fontFamily: "'DM Sans', sans-serif",
+                }}
+              >
+                {submitError}
+              </p>
+            )}
           </div>
         )}
       </div>

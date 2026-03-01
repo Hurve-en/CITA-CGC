@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ScoreRing from "../components/ScoreRing";
+import { getReports } from "../lib/supabase";
 
 const REEFS = [
   {
@@ -64,13 +66,52 @@ const statusBg = (s) =>
 
 export default function Overview() {
   const navigate = useNavigate();
+  const [reefs, setReefs] = useState(REEFS);
+
+  useEffect(() => {
+    let active = true;
+    const loadReports = async () => {
+      const reports = await getReports(8);
+      if (!active || !Array.isArray(reports) || reports.length === 0) return;
+
+      const normalized = reports.map((r, idx) => {
+        const diff = (Date.now() - new Date(r.reported_at)) / 1000;
+        const lastReport =
+          !Number.isFinite(diff) || diff < 0
+            ? "recently"
+            : diff < 3600
+              ? `${Math.max(1, Math.floor(diff / 60))} min ago`
+              : diff < 86400
+                ? `${Math.floor(diff / 3600)} hrs ago`
+                : `${Math.floor(diff / 86400)} days ago`;
+
+        return {
+          id: r.id || `report-${idx}`,
+          name: r.location || "Unknown Reef",
+          score: Number.isFinite(r.health_score) ? r.health_score : 0,
+          status: r.status || "At Risk",
+          location: r.location || "Unknown",
+          lastReport,
+          bleach: Number.isFinite(r.bleaching_percent) ? r.bleaching_percent : 0,
+          coverage: Number.isFinite(r.coral_coverage) ? r.coral_coverage : 0,
+          threat: r.main_threat || "Unknown",
+        };
+      });
+      setReefs(normalized);
+    };
+
+    loadReports();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const avgScore = Math.round(
-    REEFS.reduce((a, r) => a + r.score, 0) / REEFS.length,
+    reefs.reduce((a, r) => a + r.score, 0) / reefs.length,
   );
-  const healthy = REEFS.filter((r) => r.status === "Healthy").length;
-  const atRisk = REEFS.filter((r) => r.status === "At Risk").length;
-  const critical = REEFS.filter((r) => r.status === "Critical").length;
+  const healthy = reefs.filter((r) => r.status === "Healthy").length;
+  const atRisk = reefs.filter((r) => r.status === "At Risk").length;
+  const critical = reefs.filter((r) => r.status === "Critical").length;
 
   return (
     <div className="pb-20">
@@ -174,7 +215,7 @@ export default function Overview() {
           {
             label: "Healthy Reefs",
             val: healthy,
-            unit: ` of ${REEFS.length}`,
+            unit: ` of ${reefs.length}`,
             color: "#4ade80",
           },
           { label: "At Risk", val: atRisk, unit: " reefs", color: "#fb923c" },
@@ -255,7 +296,7 @@ export default function Overview() {
         </div>
 
         <div>
-          {REEFS.map((r) => (
+          {reefs.map((r) => (
             <div
               key={r.id}
               className="flex items-center justify-between py-5 cursor-pointer group"

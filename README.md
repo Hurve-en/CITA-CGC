@@ -29,6 +29,15 @@ Supabase — free database + hosting
 # Maps
 OpenStreetMap + Leaflet — 100% free map of Cebu
 
+## Local Setup
+
+1. Copy `coralguard/.env.example` to `coralguard/.env` and fill real keys.
+2. In Supabase SQL editor, run `coralguard/SUPABASE_SETUP.sql`.
+3. Install and run:
+   - `cd coralguard`
+   - `npm install`
+   - `npm run dev`
+
 
 ## How Ai works
 

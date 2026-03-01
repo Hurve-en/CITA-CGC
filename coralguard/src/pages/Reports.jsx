@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getReports } from "../lib/supabase";
+import { getReports, deleteReport, clearReports } from "../lib/supabase";
 import ScoreRing from "../components/ScoreRing";
 import { useNavigate } from "react-router-dom";
 
@@ -23,96 +23,83 @@ const urgencyColor = (u) =>
   ] || "#94a3b8";
 
 function timeAgo(dateStr) {
+  if (!dateStr) return "unknown";
   const diff = (Date.now() - new Date(dateStr)) / 1000;
+  if (Number.isNaN(diff) || diff < 0) return "unknown";
   if (diff < 60) return "just now";
   if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)} hrs ago`;
   return `${Math.floor(diff / 86400)} days ago`;
 }
 
-// Fallback static data if Supabase has no reports yet
-const STATIC_REPORTS = [
-  {
-    id: 1,
-    location: "Moalboal, Cebu",
-    health_score: 78,
-    status: "Healthy",
-    bleaching_percent: 12,
-    coral_coverage: 74,
-    water_clarity: "Good",
-    main_threat: "Tourism pressure",
-    species: "Acropora sp.",
-    urgency: "Low",
-    reported_at: new Date(Date.now() - 7200000).toISOString(),
-  },
-  {
-    id: 2,
-    location: "Pescador Island",
-    health_score: 55,
-    status: "At Risk",
-    bleaching_percent: 38,
-    coral_coverage: 48,
-    water_clarity: "Fair",
-    main_threat: "Thermal stress",
-    species: "Porites sp.",
-    urgency: "Medium",
-    reported_at: new Date(Date.now() - 18000000).toISOString(),
-  },
-  {
-    id: 3,
-    location: "Malapascua Island",
-    health_score: 31,
-    status: "Critical",
-    bleaching_percent: 71,
-    coral_coverage: 22,
-    water_clarity: "Poor",
-    main_threat: "Bleaching event",
-    species: "Unknown",
-    urgency: "Critical",
-    reported_at: new Date(Date.now() - 86400000).toISOString(),
-  },
-  {
-    id: 4,
-    location: "Olango Island",
-    health_score: 82,
-    status: "Healthy",
-    bleaching_percent: 8,
-    coral_coverage: 80,
-    water_clarity: "Excellent",
-    main_threat: "Sedimentation",
-    species: "Montipora sp.",
-    urgency: "Low",
-    reported_at: new Date(Date.now() - 172800000).toISOString(),
-  },
-  {
-    id: 5,
-    location: "Mactan Island",
-    health_score: 47,
-    status: "At Risk",
-    bleaching_percent: 45,
-    coral_coverage: 40,
-    water_clarity: "Fair",
-    main_threat: "Anchor damage",
-    species: "Acropora sp.",
-    urgency: "High",
-    reported_at: new Date(Date.now() - 259200000).toISOString(),
-  },
-];
-
 export default function Reports() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState("");
   const navigate = useNavigate();
 
+  const reloadReports = async () => {
+    const data = await getReports();
+    setReports(data);
+  };
+
   useEffect(() => {
-    const load = async () => {
+    let active = true;
+    const initLoad = async () => {
       const data = await getReports();
-      setReports(data.length > 0 ? data : STATIC_REPORTS);
+      if (!active) return;
+      setReports(data);
       setLoading(false);
     };
-    load();
+    initLoad();
+    return () => {
+      active = false;
+    };
   }, []);
+
+  const onDelete = async (report) => {
+    if (!report || busy) return;
+    const confirmed = window.confirm(
+      "Delete this report? This action cannot be undone.",
+    );
+    if (!confirmed) return;
+
+    setActionError("");
+    setBusy(true);
+    const res = await deleteReport(report);
+    setBusy(false);
+
+    if (!res.success) {
+      setActionError("Failed to delete report. Please try again.");
+      return;
+    }
+
+    if (selected?.id === report.id) setSelected(null);
+    await reloadReports();
+  };
+
+  const onClearAll = async () => {
+    if (busy || reports.length === 0) return;
+    const confirmed = window.confirm(
+      "Clear all reports? This will remove all report records.",
+    );
+    if (!confirmed) return;
+
+    setActionError("");
+    setBusy(true);
+    const res = await clearReports();
+    setBusy(false);
+
+    if (!res.success) {
+      setActionError("Failed to clear reports. Please try again.");
+      return;
+    }
+
+    setSelected(null);
+    setReports([]);
+  };
 
   const avgScore = reports.length
     ? Math.round(
@@ -154,20 +141,48 @@ export default function Reports() {
               Reef Reports
             </h2>
           </div>
-          <button
-            onClick={() => navigate("/analyze")}
-            className="text-sm font-semibold px-6 py-2.5 rounded-full transition-opacity hover:opacity-80"
-            style={{
-              background: "#f8fafc",
-              color: "#0a0a0a",
-              border: "none",
-              fontFamily: "'DM Sans', sans-serif",
-              cursor: "pointer",
-            }}
-          >
-            + New Report
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={onClearAll}
+              disabled={busy || reports.length === 0}
+              className="text-sm font-semibold px-5 py-2.5 rounded-full transition-opacity hover:opacity-80"
+              style={{
+                background:
+                  busy || reports.length === 0
+                    ? "rgba(248,113,113,0.3)"
+                    : "rgba(248,113,113,0.18)",
+                color: "#f87171",
+                border: "1px solid rgba(248,113,113,0.35)",
+                fontFamily: "'DM Sans', sans-serif",
+                cursor:
+                  busy || reports.length === 0 ? "not-allowed" : "pointer",
+              }}
+            >
+              {busy ? "Working…" : "Clear All"}
+            </button>
+            <button
+              onClick={() => navigate("/analyze")}
+              className="text-sm font-semibold px-6 py-2.5 rounded-full transition-opacity hover:opacity-80"
+              style={{
+                background: "#f8fafc",
+                color: "#0a0a0a",
+                border: "none",
+                fontFamily: "'DM Sans', sans-serif",
+                cursor: "pointer",
+              }}
+            >
+              + New Report
+            </button>
+          </div>
         </div>
+        {actionError && (
+          <p
+            className="mt-3 text-xs"
+            style={{ color: "#f87171", fontFamily: "'DM Sans', sans-serif" }}
+          >
+            {actionError}
+          </p>
+        )}
       </div>
 
       {/* ── Metrics ── */}
@@ -265,7 +280,7 @@ export default function Reports() {
               <div
                 className="grid text-xs uppercase pb-3 mb-1"
                 style={{
-                  gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr",
+                  gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr auto",
                   letterSpacing: "0.12em",
                   color: "rgba(248,250,252,0.25)",
                   fontFamily: "'DM Sans', sans-serif",
@@ -277,80 +292,113 @@ export default function Reports() {
                 <div>Status</div>
                 <div>Bleaching</div>
                 <div>Reported</div>
+                <div>Action</div>
               </div>
 
               {/* Rows */}
-              {reports.map((r) => (
+              {reports.length === 0 ? (
                 <div
-                  key={r.id}
-                  onClick={() => setSelected(selected?.id === r.id ? null : r)}
-                  className="grid items-center py-4 cursor-pointer transition-colors"
+                  className="py-12 text-center"
                   style={{
-                    gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr",
+                    color: "rgba(248,250,252,0.45)",
+                    fontFamily: "'DM Sans', sans-serif",
                     borderBottom: "1px solid rgba(255,255,255,0.04)",
-                    background:
-                      selected?.id === r.id
-                        ? "rgba(255,255,255,0.02)"
-                        : "transparent",
-                    borderLeft:
-                      selected?.id === r.id
-                        ? `2px solid ${statusColor(r.status)}`
-                        : "2px solid transparent",
-                    paddingLeft: 8,
                   }}
                 >
+                  No reports yet. Analyze a reef photo to create your first report.
+                </div>
+              ) : (
+                reports.map((r) => (
                   <div
-                    className="text-sm font-medium"
+                    key={r.id}
+                    onClick={() => setSelected(selected?.id === r.id ? null : r)}
+                    className="grid items-center py-4 cursor-pointer transition-colors"
                     style={{
-                      color: "#f8fafc",
-                      fontFamily: "'DM Sans', sans-serif",
+                      gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr auto",
+                      borderBottom: "1px solid rgba(255,255,255,0.04)",
+                      background:
+                        selected?.id === r.id
+                          ? "rgba(255,255,255,0.02)"
+                          : "transparent",
+                      borderLeft:
+                        selected?.id === r.id
+                          ? `2px solid ${statusColor(r.status)}`
+                          : "2px solid transparent",
+                      paddingLeft: 8,
                     }}
                   >
-                    {r.location}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span
+                    <div
+                      className="text-sm font-medium"
                       style={{
-                        fontFamily: "'Instrument Serif', serif",
-                        fontSize: 20,
-                        color: scoreColor(r.health_score),
-                      }}
-                    >
-                      {r.health_score}
-                    </span>
-                  </div>
-                  <div>
-                    <span
-                      className="text-xs px-2.5 py-1 rounded-full font-medium"
-                      style={{
-                        background: statusBg(r.status),
-                        color: statusColor(r.status),
+                        color: "#f8fafc",
                         fontFamily: "'DM Sans', sans-serif",
                       }}
                     >
-                      {r.status}
-                    </span>
+                      {r.location}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        style={{
+                          fontFamily: "'Instrument Serif', serif",
+                          fontSize: 20,
+                          color: scoreColor(r.health_score),
+                        }}
+                      >
+                        {r.health_score}
+                      </span>
+                    </div>
+                    <div>
+                      <span
+                        className="text-xs px-2.5 py-1 rounded-full font-medium"
+                        style={{
+                          background: statusBg(r.status),
+                          color: statusColor(r.status),
+                          fontFamily: "'DM Sans', sans-serif",
+                        }}
+                      >
+                        {r.status}
+                      </span>
+                    </div>
+                    <div
+                      className="text-sm"
+                      style={{
+                        color: "rgba(248,250,252,0.5)",
+                        fontFamily: "'DM Sans', sans-serif",
+                      }}
+                    >
+                      {r.bleaching_percent}%
+                    </div>
+                    <div
+                      className="text-xs"
+                      style={{
+                        color: "rgba(248,250,252,0.3)",
+                        fontFamily: "'DM Sans', sans-serif",
+                      }}
+                    >
+                      {timeAgo(r.reported_at)}
+                    </div>
+                    <div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDelete(r);
+                        }}
+                        disabled={busy}
+                        className="text-xs px-2.5 py-1 rounded-full transition-opacity hover:opacity-80"
+                        style={{
+                          background: "rgba(248,113,113,0.1)",
+                          border: "1px solid rgba(248,113,113,0.3)",
+                          color: "#f87171",
+                          fontFamily: "'DM Sans', sans-serif",
+                          cursor: busy ? "not-allowed" : "pointer",
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
-                  <div
-                    className="text-sm"
-                    style={{
-                      color: "rgba(248,250,252,0.5)",
-                      fontFamily: "'DM Sans', sans-serif",
-                    }}
-                  >
-                    {r.bleaching_percent}%
-                  </div>
-                  <div
-                    className="text-xs"
-                    style={{
-                      color: "rgba(248,250,252,0.3)",
-                      fontFamily: "'DM Sans', sans-serif",
-                    }}
-                  >
-                    {timeAgo(r.reported_at)}
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           )}
         </div>
@@ -484,6 +532,20 @@ export default function Reports() {
             >
               {timeAgo(selected.reported_at)}
             </div>
+            <button
+              onClick={() => onDelete(selected)}
+              disabled={busy}
+              className="w-full mt-4 py-2.5 rounded-lg text-xs font-semibold transition-opacity hover:opacity-80"
+              style={{
+                background: "rgba(248,113,113,0.1)",
+                border: "1px solid rgba(248,113,113,0.3)",
+                color: "#f87171",
+                fontFamily: "'DM Sans', sans-serif",
+                cursor: busy ? "not-allowed" : "pointer",
+              }}
+            >
+              Delete This Report
+            </button>
           </div>
         )}
       </div>

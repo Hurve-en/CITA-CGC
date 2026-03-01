@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { chatWithReefBot } from "../lib/gemini";
+import { chatWithReefBot, isGeminiConfigured } from "../lib/gemini";
 
 const QUICK_QUESTIONS = [
   "Unsa ang coral bleaching?",
@@ -19,6 +19,9 @@ export default function ReefBot() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState([]);
+  const [connectionState, setConnectionState] = useState(
+    isGeminiConfigured() ? "online" : "degraded",
+  );
   const endRef = useRef();
   const inputRef = useRef();
 
@@ -37,6 +40,11 @@ export default function ReefBot() {
 
     try {
       const reply = await chatWithReefBot(history, msg);
+      const isFallback =
+        /temporarily unavailable|temporary nga issue|Gemini key not configured/i.test(
+          reply,
+        );
+      setConnectionState(isFallback ? "degraded" : "online");
       setMessages((prev) => [...prev, { role: "bot", text: reply }]);
       setHistory((prev) => [
         ...prev,
@@ -45,6 +53,7 @@ export default function ReefBot() {
       ]);
     } catch (err) {
       console.error(err);
+      setConnectionState("degraded");
       setMessages((prev) => [
         ...prev,
         {
@@ -89,20 +98,28 @@ export default function ReefBot() {
           <div
             className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-full"
             style={{
-              background: "rgba(74,222,128,0.08)",
-              border: "1px solid rgba(74,222,128,0.15)",
-              color: "#4ade80",
+              background:
+                connectionState === "online"
+                  ? "rgba(74,222,128,0.08)"
+                  : "rgba(251,146,60,0.12)",
+              border:
+                connectionState === "online"
+                  ? "1px solid rgba(74,222,128,0.15)"
+                  : "1px solid rgba(251,146,60,0.25)",
+              color: connectionState === "online" ? "#4ade80" : "#fb923c",
               fontFamily: "'DM Sans', sans-serif",
             }}
           >
             <div
               className="w-1.5 h-1.5 rounded-full"
               style={{
-                background: "#4ade80",
+                background: connectionState === "online" ? "#4ade80" : "#fb923c",
                 animation: "pulse 2s infinite",
               }}
             />
-            Gemini AI · Online
+            {connectionState === "online"
+              ? "Gemini AI · Online"
+              : "Gemini AI · Fallback"}
           </div>
         </div>
       </div>

@@ -11,7 +11,7 @@ const navItems = [
 export default function Navbar() {
   return (
     <nav
-      className="fixed top-0 left-0 right-0 z-50 h-16 flex items-center justify-between px-12 border-b border-white/5"
+      className="fixed top-0 left-0 right-0 z-50 h-16 flex items-center justify-between px-12 border-b border-white/5 coral-nav"
       style={{
         background: "rgba(10,10,10,0.92)",
         backdropFilter: "blur(24px)",
@@ -43,7 +43,7 @@ export default function Navbar() {
       </div>
 
       {/* Nav Links */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 coral-nav-links">
         {navItems.map((item) => (
           <NavLink
             key={item.path}
@@ -65,7 +65,7 @@ export default function Navbar() {
 
       {/* SDG Badge */}
       <div
-        className="text-xs px-3 py-1 rounded-full border"
+        className="coral-nav-badge text-xs px-3 py-1 rounded-full border"
         style={{
           background: "rgba(74,222,128,0.08)",
           borderColor: "rgba(74,222,128,0.15)",

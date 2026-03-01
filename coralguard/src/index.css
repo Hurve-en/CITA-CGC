@@ -51,6 +51,15 @@ body {
     transform: translateY(-5px);
   }
 }
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
 
 /* Utility fallback for Tailwind-style classes used in this project */
 .fixed { position: fixed; }
@@ -210,3 +219,29 @@ body {
 .hover\:border-white\/20:hover { border-color: rgba(255, 255, 255, 0.2); }
 .hover\:border-white\/30:hover { border-color: rgba(255, 255, 255, 0.3); }
 .group:hover .group-hover\:text-white { color: rgba(255, 255, 255, 1); }
+
+@media (max-width: 980px) {
+  .coral-nav {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    gap: 0.5rem;
+  }
+
+  .coral-nav-links {
+    flex: 1;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    white-space: nowrap;
+    justify-content: flex-start;
+  }
+  .coral-nav-links::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .coral-nav-badge {
+    display: none;
+  }
+}

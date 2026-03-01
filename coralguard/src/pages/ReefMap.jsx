@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, CircleMarker, Tooltip } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import ScoreRing from "../components/ScoreRing";
 import { useNavigate } from "react-router-dom";
+import { getReports } from "../lib/supabase";
 
 const REEFS = [
   {
@@ -105,6 +106,17 @@ const REEFS = [
   },
 ];
 
+const LOCATION_COORDS = {
+  "Moalboal, Cebu": [9.9367, 123.3972],
+  "Pescador Island": [9.8667, 123.3667],
+  "Malapascua Island": [11.3333, 124.1167],
+  "Mactan Island": [10.3157, 123.9494],
+  "Camotes Island": [10.6667, 124.35],
+  "Olango Island": [10.2667, 124.0667],
+  "Bantayan Island": [11.1667, 123.7167],
+  "Other / Unknown": [10.3157, 123.8854],
+};
+
 const statusColor = (s) =>
   ({ Healthy: "#4ade80", "At Risk": "#fb923c", Critical: "#f87171" })[s] ||
   "#94a3b8";
@@ -120,8 +132,56 @@ const scoreColor = (n) =>
   n >= 65 ? "#4ade80" : n >= 40 ? "#fb923c" : "#f87171";
 
 export default function ReefMap() {
+  const [reefs, setReefs] = useState(REEFS);
   const [selected, setSelected] = useState(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    let active = true;
+    const loadReports = async () => {
+      const reports = await getReports(50);
+      if (!active || !Array.isArray(reports) || reports.length === 0) return;
+
+      const mapped = reports.map((r, idx) => {
+        const location = r.location || "Other / Unknown";
+        const [lat, lng] = LOCATION_COORDS[location] || LOCATION_COORDS["Other / Unknown"];
+        const diff = (Date.now() - new Date(r.reported_at)) / 1000;
+        const lastReport =
+          !Number.isFinite(diff) || diff < 0
+            ? "recently"
+            : diff < 3600
+              ? `${Math.max(1, Math.floor(diff / 60))} min ago`
+              : diff < 86400
+                ? `${Math.floor(diff / 3600)} hrs ago`
+                : `${Math.floor(diff / 86400)} days ago`;
+
+        return {
+          id: r.id || `report-${idx}`,
+          name: location,
+          lat,
+          lng,
+          score: Number.isFinite(r.health_score) ? r.health_score : 0,
+          status: r.status || "At Risk",
+          bleach: Number.isFinite(r.bleaching_percent) ? r.bleaching_percent : 0,
+          coverage: Number.isFinite(r.coral_coverage) ? r.coral_coverage : 0,
+          location,
+          lastReport,
+          threat: r.main_threat || "Unknown",
+          depth: "N/A",
+        };
+      });
+
+      setReefs(mapped);
+      setSelected((prev) =>
+        prev ? mapped.find((m) => String(m.id) === String(prev.id)) || null : null,
+      );
+    };
+
+    loadReports();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <div
@@ -196,7 +256,7 @@ export default function ReefMap() {
               url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
               attribution="© CartoDB"
             />
-            {REEFS.map((reef) => (
+            {reefs.map((reef) => (
               <CircleMarker
                 key={reef.id}
                 center={[reef.lat, reef.lng]}
@@ -403,10 +463,10 @@ export default function ReefMap() {
                     fontFamily: "'DM Sans', sans-serif",
                   }}
                 >
-                  {REEFS.length} Reefs Monitored
+                  {reefs.length} Reefs Monitored
                 </p>
               </div>
-              {REEFS.map((r) => (
+              {reefs.map((r) => (
                 <div
                   key={r.id}
                   className="flex items-center justify-between px-6 py-4 cursor-pointer border-b transition-colors hover:bg-white/2"
