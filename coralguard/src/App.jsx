@@ -24,7 +24,7 @@ export default function App() {
         <Navbar />
 
         {/* Page content */}
-        <main className="relative z-10 pt-16">
+        <main className="relative z-10 pt-16 cita-main">
           <Routes>
             <Route path="/" element={<Overview />} />
             <Route path="/reefs" element={<ReefMap />} />

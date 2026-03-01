@@ -19,7 +19,7 @@ export default function Navbar() {
       }}
     >
       {/* Logo */}
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2.5 cita-brandmark">
         <img
           src={citaLogo}
           alt="CITA logo"
@@ -35,7 +35,7 @@ export default function Navbar() {
       </div>
 
       {/* Nav Links */}
-      <div className="flex items-center gap-1 coral-nav-links">
+      <div className="flex items-center gap-1 coral-nav-links cita-nav-links">
         {navItems.map((item) => (
           <NavLink
             key={item.path}
@@ -57,7 +57,7 @@ export default function Navbar() {
 
       {/* SDG Badge */}
       <div
-        className="coral-nav-badge text-xs px-3 py-1 rounded-full border"
+        className="coral-nav-badge text-xs px-3 py-1 rounded-full border cita-nav-badge"
         style={{
           background: "rgba(74,222,128,0.08)",
           borderColor: "rgba(74,222,128,0.15)",
