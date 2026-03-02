@@ -255,6 +255,29 @@ function analysisFallback(location, reason = "Gemini unavailable") {
   };
 }
 
+function classifyGeminiErrorMessage(message = "") {
+  const m = String(message || "").toLowerCase();
+  if (!m) return null;
+
+  if (m.includes("api key not valid") || m.includes("invalid api key")) {
+    return "Gemini API key is invalid. Update Vercel env `VITE_GEMINI_API_KEY` and redeploy.";
+  }
+  if (m.includes("api_key_http_referrer_blocked") || m.includes("referer")) {
+    return "Gemini key blocked by HTTP referrer restrictions. Add your Vercel domain(s) in Google Cloud API key restrictions.";
+  }
+  if (
+    m.includes("permission denied") ||
+    m.includes("access not configured") ||
+    m.includes("service disabled")
+  ) {
+    return "Gemini API access is not enabled for this key/project. Enable Generative Language API and verify key restrictions.";
+  }
+  if (m.includes("quota") || m.includes("rate limit") || m.includes("resource has been exhausted")) {
+    return "Gemini quota/rate limit reached. Check quota limits and billing in Google AI/Cloud console.";
+  }
+  return null;
+}
+
 export async function analyzeCoralImage(base64Image, mimeType, location) {
   // If API key missing, return a deterministic demo result (prevents runtime crashes during demos)
   if (!hasValidGeminiKey()) {
@@ -472,6 +495,10 @@ Never invent emergency hotlines. If unsure about a phone number, advise contacti
     throw lastError || new Error("All Gemini model attempts failed");
   } catch (error) {
     console.warn("[Gemini][reefbot] failed; returning fallback reply", error);
+    const classified = classifyGeminiErrorMessage(error?.message);
+    if (classified) {
+      return classified;
+    }
     const isBisaya = /(unsa|ngano|pwede|tabang|salamat|maayo|dili|kinsa)/i.test(
       userMessage || "",
     );
