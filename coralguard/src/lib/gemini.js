@@ -7,7 +7,10 @@ function readGeminiApiKey() {
     env.VITE_Gemini_API_Key,
   ];
   const key = candidates.find((v) => typeof v === "string" && v.trim());
-  return key ? key.trim() : "";
+  if (!key) return "";
+  const trimmed = key.trim();
+  // Accept keys accidentally wrapped in quotes in environment settings.
+  return trimmed.replace(/^["']|["']$/g, "");
 }
 
 const API_KEY = readGeminiApiKey();
@@ -27,7 +30,7 @@ function makeApiUrl(key, model) {
 }
 
 function hasValidGeminiKey() {
-  return Boolean(API_KEY && API_KEY.startsWith("AIza"));
+  return /^AIza[0-9A-Za-z_-]{10,}$/.test(API_KEY || "");
 }
 
 function normalizeModelName(name) {
