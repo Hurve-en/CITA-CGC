@@ -1,3 +1,4 @@
+// Landing page that highlights key reef metrics and recent reports.
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ScoreRing from "../components/ScoreRing";

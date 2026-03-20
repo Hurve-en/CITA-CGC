@@ -1,3 +1,4 @@
+// ScoreRing renders a circular gauge showing a reef health score out of 100.
 export default function ScoreRing({ score, size = 80 }) {
   const radius = size / 2 - 6;
   const circumference = 2 * Math.PI * radius;

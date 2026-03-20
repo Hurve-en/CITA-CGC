@@ -1,3 +1,4 @@
+// Chat interface for ReefBot, the Gemini-powered reef helper.
 import { useState, useRef, useEffect } from "react";
 import { chatWithReefBot, isGeminiConfigured } from "../lib/gemini";
 

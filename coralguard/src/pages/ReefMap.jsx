@@ -1,3 +1,4 @@
+// Map view showing Cebu reef locations with live health scores.
 import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, CircleMarker, Tooltip } from "react-leaflet";
 import "leaflet/dist/leaflet.css";

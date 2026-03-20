@@ -1,3 +1,4 @@
+// Reports dashboard for browsing, deleting, and clearing reef submissions.
 import { useState, useEffect } from "react";
 import { getReports, deleteReport, clearReports } from "../lib/supabase";
 import ScoreRing from "../components/ScoreRing";

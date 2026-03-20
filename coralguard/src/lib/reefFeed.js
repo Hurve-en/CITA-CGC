@@ -1,3 +1,4 @@
+// Combines Supabase reports, marine data, and static fallbacks into a single feed.
 import { getReports } from "./supabase";
 import {
   fetchCebuThermalReports,

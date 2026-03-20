@@ -1,3 +1,4 @@
+// Navbar renders the top navigation links for the app.
 import { NavLink } from "react-router-dom";
 import citaLogo from "../assets/CITA_logo.jpg";
 

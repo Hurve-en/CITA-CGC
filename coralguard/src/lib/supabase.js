@@ -1,3 +1,4 @@
+// Supabase client setup with local fallbacks for storing and retrieving reef reports.
 import { createClient } from "@supabase/supabase-js";
 
 const rawSupabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";

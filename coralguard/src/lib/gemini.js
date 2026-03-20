@@ -1,3 +1,4 @@
+// Gemini helpers: reads the API key, discovers models, and parses analysis replies.
 function readGeminiApiKey() {
   const env = import.meta.env || {};
   const candidates = [

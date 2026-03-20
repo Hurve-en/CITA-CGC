@@ -1,3 +1,4 @@
+// App sets up the router and shared layout for all CoralGuard pages.
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Overview from "./pages/Overview";

@@ -1,3 +1,4 @@
+// Upload-and-analyze flow for reef photos using Gemini plus report submission.
 import { useState, useRef, useEffect } from "react";
 import { analyzeCoralImage } from "../lib/gemini";
 import { submitReport } from "../lib/supabase";

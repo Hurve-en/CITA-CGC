@@ -1,3 +1,4 @@
+// Helpers for Cebu reef metadata and marine API thermal risk estimates.
 export const CEBU_REEF_SITES = [
   { name: "Moalboal Reef Wall", location: "Moalboal, Cebu", lat: 9.9367, lng: 123.3972 },
   { name: "Pescador Island", location: "Pescador Island", lat: 9.8667, lng: 123.3667 },
